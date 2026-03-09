@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin · Catálogo</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2f6b4f; --green-d:#1d4a35; --green-l:#e4f0e9;
+  --terra:#c8622a; --terra-l:#f5e8df;
+  --cream:#faf8f3; --surface:#fff;
+  --border:#e6dfd2; --text:#1e1a14; --muted:#8a8070;
+  --shadow:rgba(30,26,20,.07);
+  --sidebar:#14211a;
+}
+html,body{height:100%}
+body{background:var(--cream);font-family:'DM Sans',sans-serif;color:var(--text)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+
+/* ── LOGIN ── */
+#login-screen{display:none;min-height:100vh;align-items:center;justify-content:center;padding:1.5rem;background:linear-gradient(145deg,var(--green-d),var(--green))}
+#login-screen.show{display:flex}
+.login-card{background:var(--surface);border-radius:22px;padding:2.5rem 2rem;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.2);animation:pop .35s ease}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;margin-bottom:.3rem}
+.login-logo em{font-style:italic;color:var(--muted);font-size:1.1rem}
+.login-label{font-size:.8rem;color:var(--muted);margin-bottom:1.5rem}
+.login-card label{font-size:.74rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.4rem}
+.login-card input{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:11px;padding:.72rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);outline:none;margin-bottom:1rem;transition:border-color .2s}
+.login-card input:focus{border-color:var(--green)}
+.login-err{color:#c0392b;font-size:.78rem;margin-bottom:.8rem;min-height:1.1rem}
+.btn-login{width:100%;background:var(--green);color:#fff;border:none;border-radius:12px;padding:.82rem;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .18s;letter-spacing:.3px}
+.btn-login:hover{background:var(--green-d)}
+.btn-login:disabled{background:#bbb;cursor:not-allowed}
+
+/* ── ADMIN LAYOUT ── */
+#admin-screen{display:none;height:100vh;overflow:hidden}
+#admin-screen.show{display:grid;grid-template-columns:240px 1fr}
+
+/* SIDEBAR */
+.sidebar{background:var(--sidebar);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.sb-top{padding:1.6rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-logo{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:#fff}
+.sb-logo em{font-style:italic;color:rgba(255,255,255,.4);font-size:.9rem;display:block;line-height:1.1;margin-top:2px}
+.sb-badge{display:inline-block;background:rgba(200,98,42,.22);color:#e8956a;border-radius:50px;padding:.16rem .65rem;font-size:.67rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-top:.5rem}
+.sb-nav{flex:1;padding:.9rem .7rem;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:.68rem .9rem;border-radius:10px;color:rgba(255,255,255,.45);font-size:.84rem;font-weight:500;cursor:pointer;transition:all .18s;margin-bottom:2px;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.nav-item.on{background:rgba(255,255,255,.1);color:#fff;font-weight:600}
+.nav-icon{font-size:1.05rem;width:22px;text-align:center;flex-shrink:0}
+.sb-bottom{padding:1rem .7rem;border-top:1px solid rgba(255,255,255,.07)}
+.btn-sb{width:100%;display:flex;align-items:center;gap:8px;border-radius:10px;padding:.62rem .9rem;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;transition:all .18s;margin-bottom:6px;border:none}
+.btn-sb-green{background:var(--green);color:#fff;font-weight:600}
+.btn-sb-green:hover{background:var(--green-d)}
+.btn-sb-ghost{background:rgba(255,255,255,.05);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.08)!important}
+.btn-sb-ghost:hover{background:rgba(255,80,80,.1);color:#ff8080;border-color:rgba(255,80,80,.2)!important}
+
+/* MAIN */
+.main{overflow-y:auto;background:var(--cream)}
+.main-inner{padding:2.2rem;max-width:900px}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;margin-bottom:.25rem}
+.page-sub{color:var(--muted);font-size:.84rem;margin-bottom:2rem}
+
+/* SECTIONS */
+.sec{display:none}.sec.on{display:block;animation:fadeIn .28s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.94)}65%{transform:scale(1.03)}100%{transform:scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.8rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.3rem;box-shadow:0 2px 10px var(--shadow);text-align:center}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:700;color:var(--green);line-height:1}
+.stat-l{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-top:.35rem}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.4rem;margin-bottom:1.2rem;box-shadow:0 2px 10px var(--shadow)}
+.card-title{font-size:.71rem;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:7px}
+.card-title::before{content:'';display:block;width:3px;height:13px;background:var(--green);border-radius:2px}
+
+/* FORM */
+.frow{display:flex;gap:10px;margin-bottom:10px}
+.ffield{flex:1;display:flex;flex-direction:column;gap:5px}
+.ffield label{font-size:.73rem;color:var(--muted);font-weight:600}
+.fi{background:var(--cream);border:1.5px solid var(--border);border-radius:11px;color:var(--text);padding:.65rem .95rem;font-size:.88rem;font-family:'DM Sans',sans-serif;outline:none;width:100%;transition:border-color .2s,box-shadow .2s}
+.fi:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,107,79,.1)}
+.fi::placeholder{color:#ccc}
+.frow-btns{display:flex;gap:8px;margin-top:4px}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all .18s;border:none;border-radius:11px;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--green);color:#fff;padding:.7rem 1.4rem;font-size:.88rem}
+.btn-primary:hover{background:var(--green-d)}
+.btn-secondary{background:var(--terra-l);color:var(--terra);padding:.65rem 1.15rem;font-size:.86rem}
+.btn-secondary:hover{background:#f0d5c5}
+.btn-sm{padding:.35rem .75rem;font-size:.78rem;border-radius:8px}
+.btn-edit{background:var(--green-l);color:var(--green);border:1.5px solid #b8ddd5}
+.btn-edit:hover{background:#d0eddf}
+.btn-del{background:#fff3f3;color:#c0392b;border:1.5px solid #f5c5c5}
+.btn-del:hover{background:#ffe0e0}
+.btn-full{width:100%;justify-content:center;padding:.88rem;font-size:.94rem;border-radius:13px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+thead th{text-align:left;font-size:.69rem;font-weight:700;color:var(--muted);letter-spacing:.7px;text-transform:uppercase;padding:.5rem .8rem;border-bottom:1.5px solid var(--border)}
+tbody td{padding:.8rem .8rem;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--cream)}
+.td-name{font-weight:600}
+.td-desc{color:var(--muted);font-size:.76rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-price{font-family:'Cormorant Garamond',serif;font-size:1.08rem;font-weight:700;color:var(--terra)}
+.td-cat{display:inline-block;background:var(--green-l);color:var(--green);border-radius:6px;padding:.17rem .55rem;font-size:.72rem;font-weight:600}
+.td-act{display:flex;gap:6px}
+.tbl-empty{text-align:center;padding:3.5rem;color:var(--muted)}
+.tbl-empty-icon{font-size:2.5rem;margin-bottom:.6rem}
+
+/* DRAG HANDLE */
+.drag-handle{cursor:grab;color:var(--muted);font-size:1.1rem;padding:0 .4rem;user-select:none}
+.drag-handle:active{cursor:grabbing}
+tr.dragging{opacity:.5;background:var(--green-l)!important}
+tr.drag-over td{border-top:2px solid var(--green)}
+
+/* QR */
+.qr-center{text-align:center}
+.qr-wrap{display:inline-block;background:#fff;border-radius:18px;padding:18px;border:2px solid var(--border);box-shadow:0 8px 28px var(--shadow)}
+#qr-el canvas,#qr-el img{border-radius:8px;display:block}
+.qr-url-row{display:flex;gap:8px;margin-top:1rem;align-items:center}
+.qr-url-display{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:9px;padding:.55rem .9rem;font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
+.btn-copy-url{background:var(--terra-l);border:1.5px solid #e8c5b0;border-radius:9px;color:var(--terra);padding:.5rem .95rem;font-size:.78rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s}
+.btn-copy-url.ok{background:#e6faf2;border-color:#7dd3ae;color:#1d7a52}
+.qr-note{color:var(--muted);font-size:.78rem;margin-top:1.2rem;line-height:1.7}
+.qr-note a{color:var(--green);font-weight:600;text-decoration:none}
+.qr-note a:hover{text-decoration:underline}
+
+/* TOAST */
+#toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:50px;padding:.6rem 1.4rem;font-size:.84rem;font-weight:500;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* SPINNER */
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .8rem}
+
+/* RESPONSIVE */
+@media(max-width:680px){
+  #admin-screen.show{grid-template-columns:1fr}
+  .sidebar{position:fixed;bottom:0;left:0;right:0;height:auto;flex-direction:row;z-index:50;border-top:1px solid rgba(255,255,255,.1)}
+  .sb-top,.sb-bottom{display:none}
+  .sb-nav{display:flex;flex-direction:row;padding:0;overflow-x:auto;overflow-y:visible}
+  .nav-item{flex-direction:column;gap:3px;font-size:.62rem;border-radius:0;padding:.65rem .5rem;flex:1;justify-content:center;white-space:nowrap}
+  .nav-icon{font-size:1.2rem}
+  .main-inner{padding:1.2rem 1rem 5rem}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Catálogo<br/><em>Panel de Administrador</em></div>
+    <p class="login-label">Inicia sesión con tu cuenta de administrador</p>
+    <label>Correo electrónico</label>
+    <input type="email"    id="l-email" placeholder="admin@ejemplo.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <label>Contraseña</label>
+    <input type="password" id="l-pw"    placeholder="••••••••"          onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div class="login-err" id="l-err"></div>
+    <button class="btn-login" id="l-btn" onclick="doLogin()">Iniciar sesión →</button>
+  </div>
+</div>
+
+<!-- ── ADMIN ─────────────────────────────────────────────────────── -->
+<div id="admin-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">Lista QR<em>Admin Panel</em></div>
+      <div class="sb-badge">Administrador</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="nav-item on" id="n-dash"     onclick="goTab('dash')">    <span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item"   id="n-products"  onclick="goTab('products')"><span class="nav-icon">📦</span> Productos</div>
+      <div class="nav-item"   id="n-qr"        onclick="goTab('qr')">      <span class="nav-icon">📱</span> Código QR</div>
+      <div class="nav-item"   id="n-settings"  onclick="goTab('settings')"><span class="nav-icon">⚙️</span> Configuración</div>
+    </nav>
+    <div class="sb-bottom">
+      <button class="btn-sb btn-sb-green" onclick="window.open('/', '_blank')">👁 Ver sitio público</button>
+      <button class="btn-sb btn-sb-ghost" onclick="doLogout()">← Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+  <div class="main-inner">
+
+    <!-- DASHBOARD -->
+    <div class="sec on" id="sec-dash">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Resumen de tu catálogo en tiempo real</div>
+      <div class="stats">
+        <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-l">Productos</div></div>
+        <div class="stat"><div class="stat-n" id="st-cats">—</div><div class="stat-l">Categorías</div></div>
+        <div class="stat"><div class="stat-n" id="st-avg">—</div><div class="stat-l">Precio prom.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Últimos productos agregados</div>
+        <div id="dash-recent"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="sec" id="sec-products">
+      <div class="page-title">Productos</div>
+      <div class="page-sub">Agrega, edita, reordena y elimina productos de tu catálogo</div>
+
+      <div class="card">
+        <div class="card-title" id="form-title">➕ Agregar producto</div>
+        <div class="frow">
+          <div class="ffield" style="flex:2"><label>Nombre *</label>
+            <input class="fi" id="f-name" placeholder="Ej: Café Americano" onkeydown="if(event.key==='Enter')saveProduct()"/>
+          </div>
+          <div class="ffield" style="flex:1"><label>Precio *</label>
+            <input type="number" class="fi" id="f-price" placeholder="0.00" min="0" step="0.01"/>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="ffield" style="flex:2"><label>Descripción</label>
+            <input class="fi" id="f-desc" placeholder="Descripción breve (opcional)"/>
+          </div>
+          <div class="ffield" style="flex:1"><label>Categoría</label>
+            <input class="fi" id="f-cat" placeholder="Ej: Bebidas"/>
+          </div>
+        </div>
+        <div class="frow-btns">
+          <button class="btn btn-primary" id="save-btn" onclick="saveProduct()">💾 Guardar</button>
+          <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">✕ Cancelar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Lista de productos (<span id="prod-count">0</span>) <span style="font-size:.68rem;font-weight:400;color:var(--muted);margin-left:4px">arrastra ⠿ para reordenar</span></div>
+        <div class="tbl-wrap" id="tbl-wrap">
+          <div class="tbl-empty"><div class="tbl-empty-icon">📦</div><p>Aún no hay productos.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR -->
+    <div class="sec" id="sec-qr">
+      <div class="page-title">Código QR</div>
+      <div class="page-sub">Tu código QR apunta directamente a la página pública del catálogo</div>
+      <div class="card qr-center">
+        <div class="card-title">QR del catálogo</div>
+        <div class="qr-wrap"><div id="qr-el"></div></div>
+        <div class="qr-url-row">
+          <div class="qr-url-display" id="qr-url-txt">—</div>
+          <button class="btn-copy-url" id="btn-copy-qr" onclick="copyQRUrl()">Copiar URL</button>
+        </div>
+        <div><button class="btn btn-primary btn-sm" style="margin-top:.9rem" onclick="downloadQR()">⬇ Descargar QR</button></div>
+        <p class="qr-note">
+          📡 Para que el QR funcione en cualquier celular, el sitio debe estar en internet.<br/>
+          Usa <a href="https://firebase.google.com/docs/hosting" target="_blank">Firebase Hosting</a>
+          y haz deploy con <code style="background:var(--cream);padding:0 4px;border-radius:4px">firebase deploy</code>
+        </p>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="sec" id="sec-settings">
+      <div class="page-title">Configuración</div>
+      <div class="page-sub">Personaliza tu catálogo público</div>
+
+      <div class="card">
+        <div class="card-title">Información del negocio</div>
+        <div class="frow">
+          <div class="ffield"><label>Nombre del negocio</label>
+            <input class="fi" id="cfg-biz" placeholder="Ej: Cafetería Lucía"/>
+          </div>
+          <div class="ffield"><label>Moneda</label>
+            <select class="fi" id="cfg-cur">
+              <option value="MXN">MXN $</option>
+              <option value="USD">USD $</option>
+              <option value="EUR">EUR €</option>
+              <option value="COP">COP $</option>
+              <option value="ARS">ARS $</option>
+            </select>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="ffield"><label>Subtítulo del hero</label>
+            <input class="fi" id="cfg-sub" placeholder="Ej: Sabores del hogar"/>
+          </div>
+          <div class="ffield"><label>Etiqueta del catálogo</label>
+            <input class="fi" id="cfg-badge" placeholder="Ej: Menú del día"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cuenta de administrador</div>
+        <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">Para cambiar el correo o contraseña, usa la <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green)">consola de Firebase Authentication</a>.</p>
+        <div style="background:var(--green-l);border-radius:10px;padding:.9rem 1rem;font-size:.82rem;color:var(--green-d)">
+          <strong>👤 Sesión activa:</strong> <span id="cfg-email">—</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="saveSettings()">💾 Guardar configuración</button>
+    </div>
+
+  </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module">
+import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { firebaseConfig } from "/assets/firebase-config.js";
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── AUTH STATE ─────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('login-screen').classList.remove('show');
+    document.getElementById('admin-screen').classList.add('show');
+    document.getElementById('cfg-email').textContent = user.email;
+    initAdmin();
+    renderQR();
+  } else {
+    document.getElementById('login-screen').classList.add('show');
+    document.getElementById('admin-screen').classList.remove('show');
+  }
+});
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+window.doLogin = async () => {
+  const email = document.getElementById('l-email').value.trim();
+  const pw    = document.getElementById('l-pw').value;
+  const btn   = document.getElementById('l-btn');
+  const err   = document.getElementById('l-err');
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Iniciando sesión…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch(e) {
+    const msgs = {
+      'auth/wrong-password':'Contraseña incorrecta.',
+      'auth/user-not-found':'No existe esa cuenta.',
+      'auth/invalid-email':'Correo no válido.',
+      'auth/too-many-requests':'Demasiados intentos. Espera un momento.',
+    };
+    err.textContent = msgs[e.code] || 'Error al iniciar sesión.';
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesión →';
+  }
+};
+
+window.doLogout = () => signOut(auth);
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+window.goTab = t => {
+  ['dash','products','qr','settings'].forEach(s => {
+    document.getElementById('sec-'+s).classList.toggle('on', s===t);
+    document.getElementById('n-'+s).classList.toggle('on', s===t);
+  });
+};
+
+// ── INIT ADMIN ─────────────────────────────────────────────────────────────
+let allProducts = [];
+let editingId   = null;
+let cfg         = {};
+
+function initAdmin() {
+  // Realtime products
+  const q = query(collection(db,'products'), orderBy('order','asc'));
+  onSnapshot(q, snap => {
+    allProducts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderTable();
+    renderDashboard();
+  });
+  // Realtime config
+  onSnapshot(collection(db,'config'), snap => {
+    snap.forEach(d => { if(d.id==='main') cfg = d.data(); });
+    applyConfigToForm();
+  });
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const total = allProducts.length;
+  const cats  = new Set(allProducts.map(p=>p.category||'General')).size;
+  const avg   = total ? allProducts.reduce((s,p)=>s+Number(p.price||0),0)/total : 0;
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-cats').textContent  = cats;
+  document.getElementById('st-avg').textContent   = '$'+Math.round(avg);
+
+  const recent = [...allProducts].reverse().slice(0,6);
+  document.getElementById('dash-recent').innerHTML = recent.length
+    ? recent.map(p=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.72rem 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;font-size:.88rem">${esc(p.name)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${esc(p.category||'General')}</div>
+          </div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--terra)">$${fmt(p.price)}</div>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem;padding:1.5rem 0;text-align:center">No hay productos aún.</div>';
+}
+
+// ── PRODUCT TABLE ──────────────────────────────────────────────────────────
+function renderTable() {
+  const cur = cfg.currency || 'MXN';
+  document.getElementById('prod-count').textContent = allProducts.length;
+  const wrap = document.getElementById('tbl-wrap');
+  if (!allProducts.length) {
+    wrap.innerHTML = '<div class="tbl-empty"><div class="tbl-empty-icon">📦</div><p>Aún no hay productos. ¡Agrega el primero!</p></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th></th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="prod-tbody">
+        ${allProducts.map(p=>`
+          <tr draggable="true" data-id="${p.id}">
+            <td><span class="drag-handle" title="Arrastra para reordenar">⠿</span></td>
+            <td><div class="td-name">${esc(p.name)}</div><div class="td-desc">${esc(p.description||'')}</div></td>
+            <td><span class="td-cat">${esc(p.category||'General')}</span></td>
+            <td class="td-price">$${fmt(p.price)}<small style="font-size:.65rem;color:var(--muted);margin-left:2px">${cur}</small></td>
+            <td><div class="td-act">
+              <button class="btn btn-sm btn-edit" onclick="editProduct('${p.id}')">✏️ Editar</button>
+              <button class="btn btn-sm btn-del"  onclick="deleteProduct('${p.id}','${esc(p.name)}')">🗑</button>
+            </div></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  initDrag();
+}
+
+// ── DRAG & DROP REORDER ────────────────────────────────────────────────────
+function initDrag() {
+  const tbody = document.getElementById('prod-tbody');
+  if (!tbody) return;
+  let dragSrc = null;
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('dragstart', e => { dragSrc = row; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    row.addEventListener('dragend',   () => { row.classList.remove('dragging'); tbody.querySelectorAll('tr').forEach(r=>r.classList.remove('drag-over')); });
+    row.addEventListener('dragover',  e => { e.preventDefault(); if(row!==dragSrc){row.classList.add('drag-over');} });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', async e => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if (!dragSrc || dragSrc===row) return;
+      const ids = [...tbody.querySelectorAll('tr')].map(r=>r.dataset.id);
+      const si  = ids.indexOf(dragSrc.dataset.id);
+      const di  = ids.indexOf(row.dataset.id);
+      ids.splice(si,1); ids.splice(di,0,dragSrc.dataset.id);
+      await Promise.all(ids.map((id,i) => updateDoc(doc(db,'products',id),{order:i})));
+      toast('Orden actualizado ✓');
+    });
+  });
+}
+
+// ── CRUD ───────────────────────────────────────────────────────────────────
+window.saveProduct = async () => {
+  const name  = document.getElementById('f-name').value.trim();
+  const price = parseFloat(document.getElementById('f-price').value);
+  const desc  = document.getElementById('f-desc').value.trim();
+  const cat   = document.getElementById('f-cat').value.trim() || 'General';
+  if (!name || isNaN(price) || price<0) { toast('⚠️ Nombre y precio son obligatorios'); return; }
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    if (editingId) {
+      await updateDoc(doc(db,'products',editingId), { name, price:price.toFixed(2), description:desc, category:cat });
+      toast('Producto actualizado ✓');
+    } else {
+      const maxOrder = allProducts.reduce((m,p)=>Math.max(m,p.order||0), -1);
+      await addDoc(collection(db,'products'), { name, price:price.toFixed(2), description:desc, category:cat, order:maxOrder+1 });
+      toast('Producto agregado ✓');
+    }
+    clearForm();
+  } catch(e) { toast('❌ Error: '+e.message); }
+  btn.disabled = false;
+};
+
+window.editProduct = async id => {
+  const p = allProducts.find(x=>x.id===id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('f-name').value  = p.name;
+  document.getElementById('f-price').value = p.price;
+  document.getElementById('f-desc').value  = p.description || '';
+  document.getElementById('f-cat').value   = p.category    || '';
+  document.getElementById('form-title').textContent  = '✏️ Editar producto';
+  document.getElementById('save-btn').textContent     = '💾 Actualizar';
+  document.getElementById('cancel-btn').style.display = 'inline-flex';
+  goTab('products');
+  document.getElementById('f-name').focus();
+};
+
+window.deleteProduct = async (id, name) => {
+  if (!confirm(`¿Eliminar "${name}"?`)) return;
+  await deleteDoc(doc(db,'products',id));
+  toast('Producto eliminado ✓');
+};
+
+window.cancelEdit = clearForm;
+function clearForm() {
+  editingId = null;
+  ['f-name','f-price','f-desc','f-cat'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('form-title').textContent  = '➕ Agregar producto';
+  document.getElementById('save-btn').textContent    = '💾 Guardar';
+  document.getElementById('cancel-btn').style.display = 'none';
+  document.getElementById('save-btn').disabled = false;
+}
+
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+function applyConfigToForm() {
+  document.getElementById('cfg-biz').value   = cfg.biz   || '';
+  document.getElementById('cfg-sub').value   = cfg.subtitle || '';
+  document.getElementById('cfg-badge').value = cfg.badge || '';
+  document.getElementById('cfg-cur').value   = cfg.currency || 'MXN';
+}
+
+window.saveSettings = async () => {
+  const data = {
+    biz:      document.getElementById('cfg-biz').value.trim()   || 'Mi Negocio',
+    subtitle: document.getElementById('cfg-sub').value.trim()   || '',
+    badge:    document.getElementById('cfg-badge').value.trim() || 'Catálogo',
+    currency: document.getElementById('cfg-cur').value,
+  };
+  await setDoc(doc(db,'config','main'), data);
+  toast('Configuración guardada ✓');
+};
+
+// ── QR ─────────────────────────────────────────────────────────────────────
+function renderQR() {
+  const url = location.origin + '/';
+  document.getElementById('qr-url-txt').textContent = url;
+  const el = document.getElementById('qr-el');
+  el.innerHTML = '';
+  if (location.protocol === 'file:') {
+    el.innerHTML = '<div style="width:220px;padding:1.5rem;color:var(--muted);font-size:.8rem;text-align:center">Sube el proyecto a Firebase Hosting para obtener la URL real.</div>';
+    return;
+  }
+  new QRCode(el, { text:url, width:220, height:220, colorDark:'#1e1a14', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+}
+
+window.copyQRUrl = () => {
+  navigator.clipboard.writeText(location.origin+'/').then(()=>{
+    const btn = document.getElementById('btn-copy-qr');
+    btn.textContent='✓ Copiada'; btn.classList.add('ok');
+    setTimeout(()=>{ btn.textContent='Copiar URL'; btn.classList.remove('ok'); },2200);
+  });
+};
+
+window.downloadQR = () => {
+  setTimeout(()=>{
+    const c = document.querySelector('#qr-el canvas');
+    if(!c){toast('El QR solo está disponible en el sitio desplegado.');return;}
+    const a=document.createElement('a'); a.download='qr-catalogo.png'; a.href=c.toDataURL('image/png'); a.click();
+  },100);
+};
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function fmt(v){return Number(v).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+</script>
+</body>
+</html>
