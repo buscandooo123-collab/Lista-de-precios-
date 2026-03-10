@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="Lista de precios"/>
+<title>Cargando...</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+img{border:none;outline:none;box-shadow:none}
+:root{
+  --bg:#faf8f3;--surface:#fff;--text:#1e1a14;
+  --accent:#2f6b4f;--muted:#8a8070;--border:#e6dfd2;
+}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;transition:background .3s,color .3s}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
+#loading.hide{opacity:0;pointer-events:none}
+.ld-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:1rem}
+.ld-text{font-size:.85rem;color:var(--muted)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* HERO */
+.hero{padding:2.5rem 1.5rem 0;text-align:center;transition:background .3s,color .3s}
+.hero-logo{max-height:180px;max-width:90%;width:auto;display:block;margin:0 auto}
+.hero-emoji{font-size:3rem;margin-bottom:.6rem;display:block}
+.hero-title{font-size:clamp(1.6rem,6vw,3rem);font-weight:700;line-height:1.15;margin-top:.5rem}
+.hero-sub{font-size:.88rem;margin-top:.5rem;opacity:.7}
+.hero-wave{height:50px;clip-path:ellipse(55% 100% at 50% 100%);margin-top:.5rem;transition:background .3s}
+
+/* BODY */
+.body{max-width:680px;margin:0 auto;padding:1.5rem 1.2rem 6rem}
+
+/* LIST */
+.layout-list .grid{display:flex;flex-direction:column;gap:10px}
+.layout-list .item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s,box-shadow .18s}
+.layout-list .item:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.09)}
+
+/* GRID */
+.layout-grid .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.layout-grid .item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.layout-grid .item:hover{transform:translateY(-2px)}
+.layout-grid .item-price{margin-top:auto}
+
+/* CARDS */
+.layout-cards .grid{display:flex;flex-direction:column;gap:14px}
+.layout-cards .item{background:var(--surface);border-radius:18px;padding:1.4rem 1.6rem;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,.08);border:none}
+.layout-cards .item:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.12)}
+
+/* ITEM */
+.item-name{font-weight:600;font-size:.95rem}
+.item-desc{font-size:.76rem;opacity:.6;margin-top:3px}
+.item-price{font-size:1.2rem;font-weight:700;white-space:nowrap;flex-shrink:0}
+.item-cur{font-size:.65rem;opacity:.55;margin-left:2px;font-weight:400}
+.item{animation:fadeUp .4s ease both}
+
+/* CATEGORY */
+.cat-heading{font-size:1.2rem;font-weight:700;margin:2rem 0 .9rem;padding-bottom:.5rem;border-bottom:2px solid var(--border)}
+.cat-heading:first-child{margin-top:0}
+
+/* EMPTY */
+.empty{text-align:center;padding:5rem 1rem;opacity:.5}
+.empty-icon{font-size:3rem;margin-bottom:.8rem}
+
+/* FOOTER */
+footer{text-align:center;padding:2rem 1rem;font-size:.74rem;opacity:.45;border-top:1px solid var(--border);margin-top:2rem}
+
+@media(max-width:480px){
+  .layout-grid .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ld-spinner"></div>
+  <div class="ld-text">Cargando catálogo…</div>
+</div>
+
+<div class="hero" id="hero">
+  <img class="hero-logo" id="hero-logo" src="" alt="" style="display:none"/>
+  <span class="hero-emoji" id="hero-emoji">🏪</span>
+  <h1 class="hero-title" id="hero-title">Mi Catálogo</h1>
+  <p class="hero-sub" id="hero-sub"></p>
+  <div class="hero-wave" id="hero-wave"></div>
+</div>
+
+<div class="body" id="catalog-body">
+  <div id="catalog"></div>
+  <footer>
+    <div id="footer-biz"></div>
+    <div>Precios sujetos a cambios sin previo aviso</div>
+  </footer>
+</div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, collection, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { firebaseConfig } from "/assets/firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let design   = defaultDesign();
+let products = [];
+let fontsLoaded = new Set();
+
+// Design
+onSnapshot(doc(db,'config','design'), snap => {
+  if(snap.exists()) design = Object.assign(defaultDesign(), snap.data());
+  applyDesign();
+  render();
+});
+
+// Logo
+onSnapshot(doc(db,'config','logo'), snap => {
+  const b64 = snap.exists() ? snap.data().base64 : '';
+  design.logoUrl = b64 || '';
+  applyDesign();
+});
+
+// Products
+const q = query(collection(db,'products'), orderBy('order','asc'));
+onSnapshot(q, snap => {
+  products = snap.docs.map(d => ({id:d.id,...d.data()}));
+  render();
+  document.getElementById('loading').classList.add('hide');
+});
+
+function applyDesign() {
+  const d = design;
+  const r = document.documentElement.style;
+  r.setProperty('--bg',      d.bgColor      || '#faf8f3');
+  r.setProperty('--surface', d.surfaceColor || '#ffffff');
+  r.setProperty('--text',    d.textColor    || '#1e1a14');
+  r.setProperty('--accent',  d.accentColor  || '#2f6b4f');
+  r.setProperty('--border',  d.borderColor  || '#e6dfd2');
+
+  const font = d.fontFamily || 'DM Sans';
+  loadFont(font);
+  document.body.style.fontFamily = `'${font}',sans-serif`;
+
+  const hero = document.getElementById('hero');
+  hero.style.background = d.heroColor || '#ffffff';
+  hero.style.color      = d.heroText  || '#1e1a14';
+  document.getElementById('hero-wave').style.background = d.bgColor || '#faf8f3';
+
+  // Logo o emoji
+  const logoEl = document.getElementById('hero-logo');
+  const emojiEl = document.getElementById('hero-emoji');
+  if(d.logoUrl){
+    logoEl.src = d.logoUrl;
+    logoEl.style.display = 'block';
+    emojiEl.style.display = 'none';
+  } else {
+    logoEl.style.display = 'none';
+    emojiEl.style.display = 'block';
+    emojiEl.textContent = d.logoEmoji || '🏪';
+  }
+
+  document.getElementById('hero-title').textContent = d.bizName  || 'Mi Catálogo';
+  document.getElementById('hero-sub').textContent   = d.subtitle || '';
+  document.getElementById('footer-biz').textContent = d.bizName  || '';
+  document.title = d.bizName || 'Catálogo';
+
+  document.getElementById('catalog-body').className = `body layout-${d.layout||'list'}`;
+}
+
+function loadFont(name){
+  if(fontsLoaded.has(name)) return;
+  fontsLoaded.add(name);
+  const l = document.createElement('link');
+  l.rel  = 'stylesheet';
+  l.href = `https://fonts.googleapis.com/css2?family=${name.replace(/ /g,'+')}:wght@400;600;700&display=swap`;
+  document.head.appendChild(l);
+}
+
+function render(){
+  const cur     = design.currency || 'MXN';
+  const catalog = document.getElementById('catalog');
+  if(!products.length){
+    catalog.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>Próximamente…</p></div>`;
+    return;
+  }
+  const groups = {};
+  products.forEach(p => { const c=p.category||'General'; (groups[c]=groups[c]||[]).push(p); });
+  let delay = 0;
+  catalog.innerHTML = Object.entries(groups).map(([cat,items]) =>
+    `<div class="cat-heading">${esc(cat)}</div>
+     <div class="grid">${items.map(p =>
+      `<div class="item" style="animation-delay:${(delay+=.04)}s">
+        <div>
+          <div class="item-name">${esc(p.name)}</div>
+          ${p.description?`<div class="item-desc">${esc(p.description)}</div>`:''}
+        </div>
+        <div class="item-price" style="color:var(--accent)">$${fmt(p.price)}<span class="item-cur">${cur}</span></div>
+      </div>`).join('')}
+     </div>`).join('');
+}
+
+function defaultDesign(){
+  return{bgColor:'#faf8f3',surfaceColor:'#ffffff',textColor:'#1e1a14',
+    accentColor:'#2f6b4f',heroColor:'#ffffff',heroText:'#1e1a14',
+    borderColor:'#e6dfd2',fontFamily:'DM Sans',layout:'list',
+    bizName:'Mi Catálogo',subtitle:'',logoEmoji:'🏪',currency:'MXN',logoUrl:''};
+}
+function fmt(v){return Number(v).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body>
+</html>

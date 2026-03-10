@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="Lista de precios"/>
+<title>Cargando...</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf8f3; --surface:#fff; --text:#1e1a14;
+  --accent:#2f6b4f; --muted:#8a8070; --border:#e6dfd2;
+}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;transition:background .3s,color .3s}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
+#loading.hide{opacity:0;pointer-events:none}
+.ld-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:1rem}
+.ld-text{font-size:.85rem;color:var(--muted)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── HERO ── */
+.hero{padding:3.5rem 1.5rem 0;text-align:center;position:relative;overflow:hidden;transition:background .3s,color .3s}
+.hero::before{content:'';position:absolute;inset:0;opacity:.04;background-image:radial-gradient(circle,currentColor 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+.hero-emoji{font-size:3rem;margin-bottom:.8rem;display:block;animation:fadeUp .5s ease both}
+.hero-title{font-size:clamp(2rem,7vw,3.5rem);font-weight:700;line-height:1.1;animation:fadeUp .5s .06s ease both}
+.hero-sub{font-size:.9rem;margin-top:.7rem;opacity:.7;animation:fadeUp .5s .12s ease both}
+.hero-wave{height:50px;clip-path:ellipse(55% 100% at 50% 100%);margin-top:-1px;transition:background .3s}
+
+/* ── BODY ── */
+.body{max-width:680px;margin:0 auto;padding:2rem 1.2rem 6rem}
+
+/* ── LIST LAYOUT ── */
+.layout-list .grid{display:flex;flex-direction:column;gap:10px}
+.layout-list .item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s,box-shadow .18s,background .3s}
+.layout-list .item:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.09)}
+
+/* ── GRID LAYOUT ── */
+.layout-grid .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.layout-grid .item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .18s,background .3s}
+.layout-grid .item:hover{transform:translateY(-2px)}
+.layout-grid .item-price{margin-top:auto}
+
+/* ── CARDS LAYOUT ── */
+.layout-cards .grid{display:flex;flex-direction:column;gap:14px}
+.layout-cards .item{background:var(--surface);border-radius:18px;padding:1.4rem 1.6rem;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,.08);border:none;transition:transform .2s,box-shadow .2s,background .3s}
+.layout-cards .item:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.12)}
+
+/* ── ITEM CONTENT ── */
+.item-name{font-weight:600;font-size:.95rem}
+.item-desc{font-size:.76rem;opacity:.6;margin-top:3px}
+.item-price{font-size:1.2rem;font-weight:700;white-space:nowrap;flex-shrink:0;transition:color .3s}
+.item-cur{font-size:.65rem;opacity:.55;margin-left:2px;font-weight:400}
+.item{animation:fadeUp .4s ease both}
+
+/* CATEGORY */
+.cat-heading{font-size:1.3rem;font-weight:700;margin:2rem 0 .9rem;padding-bottom:.5rem;border-bottom:2px solid var(--border);transition:color .3s,border-color .3s}
+.cat-heading:first-child{margin-top:0}
+
+/* EMPTY */
+.empty{text-align:center;padding:5rem 1rem;opacity:.5}
+.empty-icon{font-size:3rem;margin-bottom:.8rem}
+
+/* FOOTER */
+footer{text-align:center;padding:2rem 1rem;font-size:.74rem;opacity:.45;border-top:1px solid var(--border);margin-top:2rem}
+.admin-link{display:inline-flex;align-items:center;gap:5px;margin-top:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.3rem .85rem;font-size:.72rem;color:var(--muted);cursor:pointer;text-decoration:none;transition:all .18s}
+.admin-link:hover{border-color:var(--accent);color:var(--accent)}
+
+@media(max-width:480px){
+  .layout-grid .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ld-spinner"></div>
+  <div class="ld-text">Cargando catálogo…</div>
+</div>
+
+<div class="hero" id="hero">
+  <span class="hero-emoji" id="hero-emoji">🏪</span>
+  <h1 class="hero-title" id="hero-title">Mi Catálogo</h1>
+  <p class="hero-sub" id="hero-sub">Lista de precios actualizada</p>
+  <div class="hero-wave" id="hero-wave"></div>
+</div>
+
+<div class="body" id="catalog-body">
+  <div id="catalog"></div>
+  <footer>
+    <div id="footer-biz">Mi Negocio</div>
+    <div>Precios sujetos a cambios sin previo aviso</div>
+    <a class="admin-link" href="/admin">⚙️ Admin</a>
+  </footer>
+</div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, collection, onSnapshot, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { firebaseConfig }  from "/assets/firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let design   = null;
+let products = [];
+let fontsLoaded = new Set();
+
+// ── REALTIME: design ─────────────────────────────────────────────
+onSnapshot(doc(db, 'config', 'design'), snap => {
+  design = snap.exists() ? snap.data() : defaultDesign();
+  applyDesign(design);
+  render();
+});
+
+// ── REALTIME: logo ────────────────────────────────────────────────
+onSnapshot(doc(db, 'config', 'logo'), snap => {
+  design.logoUrl = (snap.exists() && snap.data().base64) ? snap.data().base64 : '';
+  applyDesign(design);
+});
+
+// ── REALTIME: products ───────────────────────────────────────────
+const q = query(collection(db, 'products'), orderBy('order', 'asc'));
+onSnapshot(q, snap => {
+  products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  render();
+  document.getElementById('loading').classList.add('hide');
+});
+
+// ── APPLY DESIGN ─────────────────────────────────────────────────
+function applyDesign(d) {
+  const r = document.documentElement.style;
+  r.setProperty('--bg',      d.bgColor      || '#faf8f3');
+  r.setProperty('--surface', d.surfaceColor || '#ffffff');
+  r.setProperty('--text',    d.textColor    || '#1e1a14');
+  r.setProperty('--accent',  d.accentColor  || '#2f6b4f');
+  r.setProperty('--border',  d.borderColor  || '#e6dfd2');
+  r.setProperty('--muted',   d.mutedColor   || '#8a8070');
+
+  // Font
+  const font = d.fontFamily || 'DM Sans';
+  loadFont(font);
+  document.body.style.fontFamily = `'${font}', sans-serif`;
+
+  // Hero
+  document.getElementById('hero').style.background = d.heroColor || d.accentColor || '#2f6b4f';
+  document.getElementById('hero').style.color      = d.heroText  || '#ffffff';
+  document.getElementById('hero-wave').style.background = d.bgColor || '#faf8f3';
+
+  // Logo as background or solid color
+  const hero = document.getElementById('hero');
+  if (d.logoUrl) {
+    hero.style.background = `linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.45)), url('${d.logoUrl}')`;
+    hero.style.backgroundSize     = 'cover';
+    hero.style.backgroundPosition = 'center';
+    document.getElementById('hero-emoji').style.display = 'none';
+  } else {
+    hero.style.background         = d.heroColor || '#2f6b4f';
+    hero.style.backgroundSize     = '';
+    hero.style.backgroundPosition = '';
+    document.getElementById('hero-emoji').style.display = 'block';
+    document.getElementById('hero-emoji').textContent   = d.logoEmoji || '🏪';
+  }
+
+  document.getElementById('hero-title').textContent = d.bizName  || 'Mi Catálogo';
+  document.getElementById('hero-sub').textContent   = d.subtitle || 'Lista de precios actualizada';
+  document.getElementById('footer-biz').textContent = d.bizName  || 'Mi Negocio';
+  document.title = d.bizName || 'Catálogo';
+
+  // Layout class
+  const body = document.getElementById('catalog-body');
+  body.className = `body layout-${d.layout || 'list'}`;
+}
+
+function loadFont(name) {
+  if (fontsLoaded.has(name)) return;
+  fontsLoaded.add(name);
+  const slug = name.replace(/ /g, '+');
+  const link = document.createElement('link');
+  link.rel  = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${slug}:wght@400;600;700&display=swap`;
+  document.head.appendChild(link);
+}
+
+// ── RENDER CATALOG ───────────────────────────────────────────────
+function render() {
+  if (!design || !products) return;
+  const cur     = design.currency || 'MXN';
+  const catalog = document.getElementById('catalog');
+
+  if (!products.length) {
+    catalog.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><p>Próximamente…</p></div>`;
+    return;
+  }
+
+  // Group by category
+  const groups = {};
+  products.forEach(p => {
+    const c = p.category || 'General';
+    (groups[c] = groups[c] || []).push(p);
+  });
+
+  let delay = 0;
+  catalog.innerHTML = Object.entries(groups).map(([cat, items]) => `
+    <div class="cat-heading">${esc(cat)}</div>
+    <div class="grid">
+      ${items.map(p => `
+        <div class="item" style="animation-delay:${(delay += .04)}s">
+          <div>
+            <div class="item-name">${esc(p.name)}</div>
+            ${p.description ? `<div class="item-desc">${esc(p.description)}</div>` : ''}
+          </div>
+          <div class="item-price" style="color:var(--accent)">
+            $${fmt(p.price)}<span class="item-cur">${cur}</span>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function defaultDesign() {
+  return { bgColor:'#faf8f3', surfaceColor:'#ffffff', textColor:'#1e1a14',
+    accentColor:'#2f6b4f', heroColor:'#2f6b4f', heroText:'#ffffff',
+    fontFamily:'DM Sans', layout:'list', bizName:'Mi Catálogo',
+    subtitle:'Lista de precios actualizada', logoEmoji:'🏪', currency:'MXN' };
+}
+
+function fmt(v){return Number(v).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body>
+</html>
